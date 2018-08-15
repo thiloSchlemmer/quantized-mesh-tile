@@ -8,57 +8,57 @@ from quantized_mesh_tile.global_geodetic import GlobalGeodetic
 from . import cartesian3d as c3d
 
 
-def get_next_by_key_and_value(edge_connections, index, edge_side):
+def getNextByKeyAndValue(edgeConnections, index, edgeSide):
     """
 
-    :param edge_connections:
+    :param edgeConnections:
     :param index:
-    :param edge_side:
+    :param edgeSide:
     :return:
     """
-    if index == len(edge_connections):
-        return edge_connections[index]
+    if index == len(edgeConnections):
+        return edgeConnections[index]
 
-    edge_connection_next = edge_connections[index]
-    while not edge_connection_next.is_side(edge_side):
+    edgeConnectionNext = edgeConnections[index]
+    while not edgeConnectionNext.isSide(edgeSide):
         index += 1
-        edge_connection_next = edge_connections[index]
+        edgeConnectionNext = edgeConnections[index]
 
-    return edge_connection_next
+    return edgeConnectionNext
 
 
-def get_previous_by_key_and_value(edge_connections, index, edge_side):
+def getPreviousByKeyAndValue(edgeConnections, index, edgeSide):
     """
 
-    :param edge_connections:
+    :param edgeConnections:
     :param index:
-    :param edge_side:
+    :param edgeSide:
     :return:
     """
     if index == 0:
-        return edge_connections[index]
+        return edgeConnections[index]
 
-    edge_connection_prev = edge_connections[index]
-    while not edge_connection_prev.is_side(edge_side):
+    edgeConnectionPrevious = edgeConnections[index]
+    while not edgeConnectionPrevious.isSide(edgeSide):
         index -= 1
-        edge_connection_prev = edge_connections[index]
+        edgeConnectionPrevious = edgeConnections[index]
 
-    return edge_connection_prev
+    return edgeConnectionPrevious
 
 
-def get_neighbours(z, x, y):
+def getNeighbours(z, x, y):
     return {'west': (z, x - 1, y),
             'north': (z, x, y + 1),
             'south': (z, x, y - 1),
             'east': (z, x + 1, y)}
 
 
-def get_neighbours_south_east(z, x, y):
+def getNeighboursSouthEast(z, x, y):
     return {'south': (z, x, y - 1),
             'east': (z, x + 1, y)}
 
 
-def load_tile(terrain_path, x, y, z):
+def loadTile(terrainPath, x, y, z):
     """
 
     :rtype: EditableTerrainTile
@@ -66,7 +66,7 @@ def load_tile(terrain_path, x, y, z):
     geodetic = GlobalGeodetic(True)
     [minx, miny, maxx, maxy] = geodetic.TileBounds(x, y, z)
     tile = EditableTerrainTile(west=minx, south=miny, east=maxx, north=maxy)
-    tile.fromFile(terrain_path, has_lighting=True)
+    tile.fromFile(terrainPath, hasLighting=True)
     return tile
 
 
@@ -78,65 +78,65 @@ class EdgeConnection(object):
     BOTH_SIDES = 2
     ONE_SIDE = 1
 
-    def __init__(self, edge_info, edge_index):
-        self.edge_index = edge_index
-        self.edge_info = edge_info
-        self._side_vertices = {}
+    def __init__(self, edgeInfo, edgeIndex):
+        self.edgeIndex = edgeIndex
+        self.edgeInfo = edgeInfo
+        self._sideVertices = {}
 
     def __repr__(self):
-        msg = 'E:{0} [{1}] -> ({2})'.format(self.edge_info, self.edge_index,
-                                            self._side_vertices)
+        msg = 'E:{0} [{1}] -> ({2})'.format(self.edgeInfo, self.edgeIndex,
+                                            self._sideVertices)
         return msg
 
-    def add_side(self, edge_side, side_vertex):
+    def addSide(self, edgeSide, sideVertex):
         """
         Adds the side information to the edge-connection
-        :param edge_side: the participating side of the edge ('w','n','e','s')
-        :param side_vertex: the index of the vertex in the list of vertices of the
+        :param edgeSide: the participating side of the edge ('w','n','e','s')
+        :param sideVertex: the index of the vertex in the list of vertices of the
         given side (tile)
         """
-        self._side_vertices[edge_side] = side_vertex
+        self._sideVertices[edgeSide] = sideVertex
 
-    def get_side_vertex(self, edge_side):
+    def getSideVertex(self, edgeSide):
         """
         Gets the index of the vertex in the list of vertices of the given side (tile)
         :rtype: integer
-        :param edge_side: the participating side of the edge ('w','n','e','s')
+        :param edgeSide: the participating side of the edge ('w','n','e','s')
         :return: the index of the vertex, based on the given side
         """
-        return self._side_vertices[edge_side]
+        return self._sideVertices[edgeSide]
 
     @property
-    def get_side_vertices(self):
-        return dict(self._side_vertices)
+    def sideVertices(self):
+        return dict(self._sideVertices)
 
     @property
-    def is_complete(self):
-        size = len(self._side_vertices.values())
+    def isComplete(self):
+        size = len(self._sideVertices.values())
         return EdgeConnection.BOTH_SIDES == size
 
     @property
-    def is_broken_on_center(self):
-        return self.is_broken_on(self.edge_info)
+    def isBrokenOnCenter(self):
+        return self.isBrokenOn(self.edgeInfo)
 
     @property
-    def is_broken_on_neighbour(self):
-        return self.is_broken_on('c')
+    def isBrokenOnNeighbour(self):
+        return self.isBrokenOn('c')
 
-    def is_broken_on(self, edge_side):
+    def isBrokenOn(self, edgeSide):
         # type: (str) -> bool
-        size = len(self._side_vertices.values())
-        return EdgeConnection.ONE_SIDE == size and self.is_side(edge_side)
+        size = len(self._sideVertices.values())
+        return EdgeConnection.ONE_SIDE == size and self.isSide(edgeSide)
 
-    def is_side(self, edge_side):
+    def isSide(self, edgeSide):
         # type: (str) -> bool
         """
 
-        :param edge_side: the participating side of the edge ('w','n','e','s')
+        :param edgeSide: the participating side of the edge ('w','n','e','s')
         :return: Returns True, if a vertex of the given side is registered in this
         connection
         """
-        return edge_side in self._side_vertices.keys()
+        return edgeSide in self._sideVertices.keys()
 
 
 class TileStitcher(object):
@@ -152,8 +152,8 @@ class TileStitcher(object):
 
         Usage example::
         import os
-        from quantized_mesh_tile.tile_stitcher import TileStitcher, load_tile,
-                                                        get_neighbours_south_east
+        from quantized_mesh_tile.tile_stitcher import TileStitcher, loadTile,
+                                                        getNeighboursSouthEast
 
         directory_base_path = '/data/terrain/'
         levels = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -173,8 +173,8 @@ class TileStitcher(object):
                 y = int(os.path.basename(tile_path).split('.')[0])
                 x = int(os.path.basename(os.path.dirname(tile_path)))
                 print('processing {0} ...'.format(tile_path))
-                neighbours = get_neighbours_south_east(level, x, y)
-                center_tile = tile_stitcher.load_tile(tile_path, x, y, level)
+                neighbours = getNeighboursSouthEast(level, x, y)
+                center_tile = tile_stitcher.loadTile(tile_path, x, y, level)
 
                 stitcher = TileStitcher(center_tile)
                 for n, tile_info in neighbours.items():
@@ -184,236 +184,236 @@ class TileStitcher(object):
                                     '%s/%s.terrain' % (n_x, n_y))
                     if os.path.exists(neighbour_path):
                         print("\tadding Neighbour {0}...".format(neighbour_path))
-                        tile = tile_stitcher.load_tile(neighbour_path, n_x, n_y, level)
-                        stitcher.add_neighbour(tile)
-                stitcher.stitch_together()
+                        tile = tile_stitcher.loadTile(neighbour_path, n_x, n_y, level)
+                        stitcher.addNeighbour(tile)
+                stitcher.stitchTogether()
                 stitcher.save()
     """
 
-    def __init__(self, center_tile):
-        self._center = center_tile
+    def __init__(self, centerTile):
+        self._center = centerTile
         self._neighbours = {}
 
-    def _get_edge_connection(self, neighbour_tile):
-        center_bbox = self._center.get_bounding_box
-        neighbour_bbox = neighbour_tile.get_bounding_box
+    def _getEdgeConnection(self, neighbourTile):
+        centerBbox = self._center.boundingBox
+        neighbourBbox = neighbourTile.boundingBox
 
-        if center_bbox['west'] == neighbour_bbox['east']:
+        if centerBbox['west'] == neighbourBbox['east']:
             return 'w'
-        if center_bbox['east'] == neighbour_bbox['west']:
+        if centerBbox['east'] == neighbourBbox['west']:
             return 'e'
-        if center_bbox['north'] == neighbour_bbox['south']:
+        if centerBbox['north'] == neighbourBbox['south']:
             return 'n'
-        if center_bbox['south'] == neighbour_bbox['north']:
+        if centerBbox['south'] == neighbourBbox['north']:
             return 's'
         return None
 
-    def _get_edge_indices(self, neighbour_tile):
-        center_bbox = self._center.get_bounding_box
-        neighbour_bbox = neighbour_tile.get_bounding_box
-        center_vertices = []
-        neighbour_vertices = []
-        if center_bbox['west'] == neighbour_bbox['east']:
-            center_vertices = self._center.get_edge_vertices('w')
-            neighbour_vertices = neighbour_tile.get_edge_vertices('e')
-        if center_bbox['east'] == neighbour_bbox['west']:
-            center_vertices = self._center.get_edge_vertices('e')
-            neighbour_vertices = neighbour_tile.get_edge_vertices('w')
-        if center_bbox['north'] == neighbour_bbox['south']:
-            center_vertices = self._center.get_edge_vertices('n')
-            neighbour_vertices = neighbour_tile.get_edge_vertices('s')
-        if center_bbox['south'] == neighbour_bbox['north']:
-            center_vertices = self._center.get_edge_vertices('s')
-            neighbour_vertices = neighbour_tile.get_edge_vertices('n')
+    def _getEdgeIndices(self, neighbourTile):
+        centerBbox = self._center.boundingBox
+        neighbourBbox = neighbourTile.boundingBox
+        centerVertices = []
+        neighbourVertices = []
+        if centerBbox['west'] == neighbourBbox['east']:
+            centerVertices = self._center.getEdgeIndices('w')
+            neighbourVertices = neighbourTile.getEdgeIndices('e')
+        if centerBbox['east'] == neighbourBbox['west']:
+            centerVertices = self._center.getEdgeIndices('e')
+            neighbourVertices = neighbourTile.getEdgeIndices('w')
+        if centerBbox['north'] == neighbourBbox['south']:
+            centerVertices = self._center.getEdgeIndices('n')
+            neighbourVertices = neighbourTile.getEdgeIndices('s')
+        if centerBbox['south'] == neighbourBbox['north']:
+            centerVertices = self._center.getEdgeIndices('s')
+            neighbourVertices = neighbourTile.getEdgeIndices('n')
 
-        return center_vertices, neighbour_vertices
+        return centerVertices, neighbourVertices
 
-    def _find_edge_connections(self):
+    def _findEdgeConnections(self):
 
-        edge_connections = []
-        for edge_info, neighbour_tile in self._neighbours.items():
-            single_edge_vertices = {}
-            edge_index = 0  # assume south>|<north
-            if edge_info in ['w', 'e']:  # assume west>|<east
-                edge_index = 1
+        edgeConnections = []
+        for edgeInfo, neighbourTile in self._neighbours.items():
+            singleEdgeVertices = {}
+            edgeIndex = 0  # assume south>|<north
+            if edgeInfo in ['w', 'e']:  # assume west>|<east
+                edgeIndex = 1
 
-            center_indices, neighbour_indices = self._get_edge_indices(neighbour_tile)
-            for center_index in center_indices:
-                c_uv = (self._center.u[center_index], self._center.v[center_index])
-                c_key = '{}_{:05}'.format(edge_info, c_uv[edge_index])
-                edge_connection = EdgeConnection(edge_info, c_uv[edge_index])
-                edge_connection.add_side('c', center_index)
-                single_edge_vertices[c_key] = edge_connection
-            for neighbour_index in neighbour_indices:
-                n_uv = (neighbour_tile.u[neighbour_index],
-                        neighbour_tile.v[neighbour_index])
-                n_key = '{}_{:05}'.format(edge_info, n_uv[edge_index])
+            centerIndices, neighbourIndices = self._getEdgeIndices(neighbourTile)
+            for centerIndex in centerIndices:
+                cUV = (self._center.u[centerIndex], self._center.v[centerIndex])
+                cKey = '{}_{:05}'.format(edgeInfo, cUV[edgeIndex])
+                edgeConnection = EdgeConnection(edgeInfo, cUV[edgeIndex])
+                edgeConnection.addSide('c', centerIndex)
+                singleEdgeVertices[cKey] = edgeConnection
+            for neighbourIndex in neighbourIndices:
+                nUV = (neighbourTile.u[neighbourIndex],
+                       neighbourTile.v[neighbourIndex])
+                nKey = '{}_{:05}'.format(edgeInfo, nUV[edgeIndex])
 
-                if n_key in single_edge_vertices.keys():
-                    single_edge_vertices[n_key].add_side(edge_info, neighbour_index)
+                if nKey in singleEdgeVertices.keys():
+                    singleEdgeVertices[nKey].addSide(edgeInfo, neighbourIndex)
                 else:
-                    edge_connection = EdgeConnection(edge_info, n_uv[edge_index])
-                    edge_connection.add_side(edge_info, neighbour_index)
-                    single_edge_vertices[n_key] = edge_connection
+                    edgeConnection = EdgeConnection(edgeInfo, nUV[edgeIndex])
+                    edgeConnection.addSide(edgeInfo, neighbourIndex)
+                    singleEdgeVertices[nKey] = edgeConnection
 
-            single_edge_connections = sorted(single_edge_vertices.values(),
-                                             key=lambda x: x.edge_index,
-                                             reverse=False)
+            singleEdgeConnections = sorted(singleEdgeVertices.values(),
+                                           key=lambda x: x.edgeIndex,
+                                           reverse=False)
 
-            edge_connections.append(single_edge_connections)
+            edgeConnections.append(singleEdgeConnections)
 
-        return edge_connections
+        return edgeConnections
 
-    def _stitch_edges(self, edge_connections):
+    def _stitchEdges(self, edgeConnections):
 
-        for edge in edge_connections:
+        for edge in edgeConnections:
             for index in range(len(edge)):
-                edge_connection = edge[index]
+                edgeConnection = edge[index]
 
-                edge_info = edge_connection.edge_info
-                neighbour = self._neighbours[edge_info]
-                if edge_connection.is_complete:
-                    self._update_height_to_even(edge_connection)
-                elif edge_connection.is_broken_on_neighbour:
-                    vertex_prev = self._get_prev_vertex(index, edge, edge_info)
-                    vertex_next = self._get_next_vertex(index, edge, edge_info)
+                edgeInfo = edgeConnection.edgeInfo
+                neighbour = self._neighbours[edgeInfo]
+                if edgeConnection.isComplete:
+                    self._updateHeightToEven(edgeConnection)
+                elif edgeConnection.isBrokenOnNeighbour:
+                    previousVertex = self._getPreviousVertex(index, edge, edgeInfo)
+                    nextVertex = self._getNextVertex(index, edge, edgeInfo)
 
-                    coordinate_new = self._center.get_coordinate(
-                        edge_connection.get_side_vertex('c'))
-                    vertex_new = neighbour.find_and_split_triangle(vertex_prev,
-                                                                   vertex_next,
-                                                                   coordinate_new)
-                    edge_connection.add_side(edge_info, vertex_new)
+                    splittingCoordinate = self._center.getCoordinateAt(
+                        edgeConnection.getSideVertex('c'))
+                    newVertex = neighbour.findAndSplitTriangle(previousVertex,
+                                                               nextVertex,
+                                                               splittingCoordinate)
+                    edgeConnection.addSide(edgeInfo, newVertex)
                 else:
                     # wenn vertex nur in n, dann triangle in c
                     # von c-vertex-1 und c-vertex+1 splitten
-                    vertex_prev = self._get_prev_vertex(index, edge, 'c')
-                    vertex_next = self._get_next_vertex(index, edge, 'c')
+                    previousVertex = self._getPreviousVertex(index, edge, 'c')
+                    nextVertex = self._getNextVertex(index, edge, 'c')
 
-                    coordinate_new = neighbour.get_coordinate(
-                        edge_connection.get_side_vertex(edge_info))
-                    vertex_new = self._center.find_and_split_triangle(vertex_prev,
-                                                                      vertex_next,
-                                                                      coordinate_new)
+                    splittingCoordinate = neighbour.getCoordinateAt(
+                        edgeConnection.getSideVertex(edgeInfo))
+                    newVertex = self._center.findAndSplitTriangle(previousVertex,
+                                                                  nextVertex,
+                                                                  splittingCoordinate)
 
-                    edge_connection.add_side('c', vertex_new)
+                    edgeConnection.addSide('c', newVertex)
 
-    def _harmonize_normals(self, edge_connections):
+    def _harmonizeNormals(self, edgeConnections):
         center = self._center
-        for edge in edge_connections:
-            for edge_connection in edge:
-                center_vertex_index = edge_connection.get_side_vertex('c')
+        for edge in edgeConnections:
+            for edgeConnection in edge:
+                centerVertexIndex = edgeConnection.getSideVertex('c')
 
-                side_vertex = edge_connection.get_side_vertex(edge_connection.edge_info)
-                neighbour_vertex_indices = {edge_connection.edge_info: side_vertex}
+                sideVertex = edgeConnection.getSideVertex(edgeConnection.edgeInfo)
+                neighbourVertexIndices = {edgeConnection.edgeInfo: sideVertex}
 
-                center_triangles = center.find_all_triangles_of(center_vertex_index)
-                normals = center.calculate_weighted_normals_for(center_triangles)
+                centerTriangles = center.findAllTrianglesOf(centerVertexIndex)
+                normals = center.calculateWeightedNormalsFor(centerTriangles)
 
-                for neighbour_info, vertex_index in neighbour_vertex_indices.items():
-                    neighbour_tile = self._neighbours[neighbour_info]
-                    triangles = neighbour_tile.find_all_triangles_of(vertex_index)
-                    normals.extend(neighbour_tile.calculate_weighted_normals_for(
+                for neighbourInfo, vertexIndex in neighbourVertexIndices.items():
+                    neighbourTile = self._neighbours[neighbourInfo]
+                    triangles = neighbourTile.findAllTrianglesOf(vertexIndex)
+                    normals.extend(neighbourTile.calculateWeightedNormalsFor(
                         triangles))
 
-                normal_vertex = [0, 0, 0]
-                for w_n in normals:
-                    normal_vertex = c3d.add(normal_vertex, w_n)
+                normalVertex = [0, 0, 0]
+                for weightedNormal in normals:
+                    normalVertex = c3d.add(normalVertex, weightedNormal)
 
-                normal_vertex = c3d.normalize(normal_vertex)
-                center.set_normal(center_vertex_index, normal_vertex)
-                for neighbour_info, vertex_index in neighbour_vertex_indices.items():
-                    neighbour_tile = self._neighbours[neighbour_info]
-                    neighbour_tile.set_normal(vertex_index, normal_vertex)
+                normalVertex = c3d.normalize(normalVertex)
+                center.setNormal(centerVertexIndex, normalVertex)
+                for neighbourInfo, vertexIndex in neighbourVertexIndices.items():
+                    neighbourTile = self._neighbours[neighbourInfo]
+                    neighbourTile.setNormal(vertexIndex, normalVertex)
 
-    def _build_normals(self, edge_connections):
+    def _buildNormals(self, edgeConnections):
         center = self._center
-        center.rebuild_h()
+        center.rebuildH()
         for n in self._neighbours.values():
-            n.rebuild_h()
+            n.rebuildH()
 
-        for edge in edge_connections:
-            for edge_connection in edge:
-                center_vertex_index = edge_connection.get_side_vertex('c')
+        for edge in edgeConnections:
+            for edgeConnection in edge:
+                centerVertexIndex = edgeConnection.getSideVertex('c')
 
-                side_vertex = edge_connection.get_side_vertex(edge_connection.edge_info)
-                neighbour_vertex_indices = {edge_connection.edge_info: side_vertex}
+                sideVertex = edgeConnection.getSideVertex(edgeConnection.edgeInfo)
+                neighbourVertexIndices = {edgeConnection.edgeInfo: sideVertex}
 
-                center_triangles = center.find_all_triangles_of(center_vertex_index)
-                normals = center.calculate_weighted_normals_for(center_triangles)
+                centerTriangles = center.findAllTrianglesOf(centerVertexIndex)
+                normals = center.calculateWeightedNormalsFor(centerTriangles)
 
-                for neighbour_info, vertex_index in neighbour_vertex_indices.items():
-                    neighbour_tile = self._neighbours[neighbour_info]
-                    triangles = neighbour_tile.find_all_triangles_of(vertex_index)
-                    normals.extend(neighbour_tile.calculate_weighted_normals_for(
+                for neighbourInfo, vertexIndex in neighbourVertexIndices.items():
+                    neighbourTile = self._neighbours[neighbourInfo]
+                    triangles = neighbourTile.findAllTrianglesOf(vertexIndex)
+                    normals.extend(neighbourTile.calculateWeightedNormalsFor(
                         triangles))
 
-                normal_vertex = [0, 0, 0]
-                for w_n in normals:
-                    normal_vertex = c3d.add(normal_vertex, w_n)
+                normalVertex = [0, 0, 0]
+                for weightedNormal in normals:
+                    normalVertex = c3d.add(normalVertex, weightedNormal)
 
-                normal_vertex = c3d.normalize(normal_vertex)
-                center.set_normal(center_vertex_index, normal_vertex)
-                for neighbour_info, vertex_index in neighbour_vertex_indices.items():
-                    neighbour_tile = self._neighbours[neighbour_info]
-                    neighbour_tile.set_normal(vertex_index, normal_vertex)
-
-    @staticmethod
-    def _get_next_vertex(index, edge_connections, edge_side):
-        edge_connection_next = get_next_by_key_and_value(edge_connections,
-                                                         index,
-                                                         edge_side)
-        vertex_next = edge_connection_next.get_side_vertex(edge_side)
-        return vertex_next
+                normalVertex = c3d.normalize(normalVertex)
+                center.setNormal(centerVertexIndex, normalVertex)
+                for neighbourInfo, vertexIndex in neighbourVertexIndices.items():
+                    neighbourTile = self._neighbours[neighbourInfo]
+                    neighbourTile.setNormal(vertexIndex, normalVertex)
 
     @staticmethod
-    def _get_prev_vertex(index, edge_connections, edge_side):
-        edge_connection_prev = get_previous_by_key_and_value(edge_connections,
-                                                             index,
-                                                             edge_side)
-        vertex_prev = edge_connection_prev.get_side_vertex(edge_side)
-        return vertex_prev
+    def _getNextVertex(index, edgeConnections, edgeSide):
+        edgeConnectionNext = getNextByKeyAndValue(edgeConnections,
+                                                  index,
+                                                  edgeSide)
+        vertexNext = edgeConnectionNext.getSideVertex(edgeSide)
+        return vertexNext
 
-    def _update_height_to_even(self, edge_connection):
-        center_vertex_index = edge_connection.get_side_vertex('c')
+    @staticmethod
+    def _getPreviousVertex(index, edgeConnections, edgeSide):
+        edgeConnectionPrevious = getPreviousByKeyAndValue(edgeConnections,
+                                                          index,
+                                                          edgeSide)
+        vertexPrevious = edgeConnectionPrevious.getSideVertex(edgeSide)
+        return vertexPrevious
 
-        vertex_indices = edge_connection.get_side_vertices
+    def _updateHeightToEven(self, edgeConnection):
+        centerVertexIndex = edgeConnection.getSideVertex('c')
 
-        vertex_heights = []
-        for edge_info, vertex_index in vertex_indices.items():
-            if edge_info is 'c':
-                vertex_heights.append(self._center.get_height(vertex_index))
+        vertexIndices = edgeConnection.sideVertices
+
+        vertexHeights = []
+        for edgeInfo, vertexIndex in vertexIndices.items():
+            if edgeInfo is 'c':
+                vertexHeights.append(self._center.getHeightAt(vertexIndex))
             else:
-                neighbour = self._neighbours[edge_info]
-                vertex_heights.append(neighbour.get_height(vertex_index))
+                neighbour = self._neighbours[edgeInfo]
+                vertexHeights.append(neighbour.getHeightAt(vertexIndex))
 
-        height = sum(vertex_heights) / len(vertex_heights)
-        for edge_info in vertex_indices:
-            if edge_info is 'c':
-                self._center.set_height(center_vertex_index, height)
+        height = sum(vertexHeights) / len(vertexHeights)
+        for edgeInfo in vertexIndices:
+            if edgeInfo is 'c':
+                self._center.setHeight(centerVertexIndex, height)
             else:
-                neighbour = self._neighbours[edge_info]
-                neighbour.set_height(vertex_indices[edge_info], height)
+                neighbour = self._neighbours[edgeInfo]
+                neighbour.setHeight(vertexIndices[edgeInfo], height)
 
-    def add_neighbour(self, neighbour_tile):
-        edge_connection = self._get_edge_connection(neighbour_tile)
-        self._neighbours[edge_connection] = neighbour_tile
+    def addNeighbour(self, neighbourTile):
+        edgeConnection = self._getEdgeConnection(neighbourTile)
+        self._neighbours[edgeConnection] = neighbourTile
 
-    def harmonize_normals(self):
-        edge_connections = self._find_edge_connections()
-        self._harmonize_normals(edge_connections)
+    def harmonizeNormals(self):
+        edgeConnections = self._findEdgeConnections()
+        self._harmonizeNormals(edgeConnections)
 
-    def stitch_together(self):
-        edge_connections = self._find_edge_connections()
-        self._stitch_edges(edge_connections)
-        self._build_normals(edge_connections)
+    def stitchTogether(self):
+        edgeConnections = self._findEdgeConnections()
+        self._stitchEdges(edgeConnections)
+        self._buildNormals(edgeConnections)
 
     def save(self):
         self._center.save()
-        for edge_info, neighbour_tile in self._neighbours.items():
-            neighbour_tile.save()
+        for edgeInfo, neighbourTile in self._neighbours.items():
+            neighbourTile.save()
 
-    def save_to(self, dir_path):
-        self._center.save_to(dir_path)
-        for edge_info, neighbour_tile in self._neighbours.items():
-            neighbour_tile.save_to(dir_path)
+    def saveTo(self, dir_path):
+        self._center.saveTo(dir_path)
+        for edgeInfo, neighbourTile in self._neighbours.items():
+            neighbourTile.saveTo(dir_path)

@@ -29,7 +29,6 @@ from .utils import (
 from .bbsphere import BoundingSphere
 from .topology import TerrainTopology
 
-MAX = 32767.0
 # For a tile of 256px * 256px
 TILEPXS = 65536
 
@@ -181,6 +180,8 @@ class TerrainTile(object):
     ])
 
     BYTESPLIT = 65636
+    MIN = 0.0
+    MAX = 32767.0
 
     # Coordinates are given in lon/lat WSG84
     def __init__(self, *args, **kwargs):
@@ -297,15 +298,17 @@ class TerrainTile(object):
         """
         if len(self._longs) == 0:
             for u in self.u:
-                self._longs.append(lerp(self._west, self._east, old_div(float(u), MAX)))
+                self._longs.append(lerp(self._west, self._east,
+                                        old_div(float(u), TerrainTile.MAX)))
             for v in self.v:
-                self._lats.append(lerp(self._south, self._north, old_div(float(v), MAX)))
+                self._lats.append(lerp(self._south, self._north,
+                                       old_div(float(v), TerrainTile.MAX)))
             for h in self.h:
                 self._heights.append(
                     lerp(
                         self.header['minimumHeight'],
                         self.header['maximumHeight'],
-                        old_div(float(h), MAX)
+                        old_div(float(h), TerrainTile.MAX)
                     )
                 )
 
@@ -671,8 +674,8 @@ class TerrainTile(object):
             elif k == 'horizonOcclusionPointZ':
                 self.header[k] = occlusionPCoords[2]
 
-        bLon = old_div(MAX, (self._east - self._west))
-        bLat = old_div(MAX, (self._north - self._south))
+        bLon = old_div(TerrainTile.MAX, (self._east - self._west))
+        bLat = old_div(TerrainTile.MAX, (self._north - self._south))
 
         quantizeLonIndices = lambda x: int(round((x - self._west) * bLon))
         quantizeLatIndices = lambda x: int(round((x - self._south) * bLat))
@@ -682,7 +685,7 @@ class TerrainTile(object):
         if deniv == 0:
             quantizeHeightIndices = lambda x: 0
         else:
-            bHeight = old_div(MAX, deniv)
+            bHeight = old_div(TerrainTile.MAX, deniv)
             quantizeHeightIndices = lambda x: int(
                 round((x - self.header['minimumHeight']) * bHeight)
             )
