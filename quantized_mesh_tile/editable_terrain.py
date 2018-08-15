@@ -7,36 +7,32 @@ from future.utils import old_div
 
 from quantized_mesh_tile import TerrainTile
 from quantized_mesh_tile.llh_ecef import LLH2ECEF
-from quantized_mesh_tile.terrain import MAX, lerp
+from quantized_mesh_tile.terrain import lerp
 from quantized_mesh_tile.utils import triangleArea
 from . import cartesian3d as c3d
 
 null_normal = [0, 0, 0]
 np_null_normal = np.array([0, 0, 0])
-MIN = 0
 
 
 class EditableTerrainTile(TerrainTile):
     """
     Helper class to edit a given terrain tile on the edges.
     Changes are possible on specified Heights, Triangles and Normals.
-
-
     """
 
     def __init__(self, *args, **kwargs):
         super(EditableTerrainTile, self).__init__(*args, **kwargs)
-        self.is_index_dirty = False
-        self._changed_heights = []
-        self._file_path = None
+        self.isIndexDirty = False
+        self._changedHeights = []
+        self._filePath = None
         self._gzipped = False
-        self._triangles = []
         self.name = None
 
-    def set_name(self, name):
+    def setName(self, name):
         self.name = name
 
-    def get_edge_vertices(self, edge):
+    def getEdgeIndices(self, edge):
         """
         Returns the indices of vertices on the defined edge.
         :param edge: the edge of the tile. Specified by the flags 'w','n','e','s'
@@ -44,41 +40,36 @@ class EditableTerrainTile(TerrainTile):
         :return: Array of integers
         """
         if 'w' == edge:
-            edge_value = MIN
-            search_array = self.u
+            edgeValue = TerrainTile.MIN
+            searchArray = self.u
         elif 'e' == edge:
-            edge_value = MAX
-            search_array = self.u
+            edgeValue = TerrainTile.MAX
+            searchArray = self.u
         elif 'n' == edge:
-            edge_value = MAX
-            search_array = self.v
+            edgeValue = TerrainTile.MAX
+            searchArray = self.v
         elif 's' == edge:
-            edge_value = MIN
-            search_array = self.v
-        indices = [i for i, x in enumerate(search_array) if x == edge_value]
+            edgeValue = TerrainTile.MIN
+            searchArray = self.v
+        indices = [i for i, x in enumerate(searchArray) if x == edgeValue]
 
         if len(indices) == 0:
             raise Exception("No edge vertices found for edge: {}".format(edge))
         return indices
 
-    def get_edge_coordinates(self, edge):
+    def getEdgeCoordinates(self, edge):
         # type: (string) -> Array
         """
-        Returns a array of coordinate-tupels for all vertices on the specified edge
+        Returns an array of coordinate-tupels for all vertices on the specified edge
         :return: Array of 3d coordinates (3-tupel of float; x,y,z)
         :param edge: the edge of the tile. Specified by the flags 'w','n','e','s'
-                    for west-, north-, east- and  south-edge
+                    for west, north, east and  south
         """
-        edge_coordinates = []
         coordinates = self.getVerticesCoordinates()
-        vertices = self.get_edge_vertices(edge)
-        for vertex in vertices:
-            edge_coordinates.append(coordinates[vertex])
-
-        return edge_coordinates
+        return [coordinates[v] for v in self.getEdgeIndices(edge)]
 
     @property
-    def get_bounding_box(self):
+    def boundingBox(self):
         """
         Returns the bounding box of the tile in WGS84 degree
         :return: Dictionary of floats for boundingbox of the tile with
@@ -89,7 +80,7 @@ class EditableTerrainTile(TerrainTile):
                 'north': self._north,
                 'south': self._south}
 
-    def set_normal(self, index, normal):
+    def setNormal(self, index, normal):
         # type: (int, Array) -> void
         """
         Sets the normal vector for the vertex which is specified with the index,
@@ -97,10 +88,10 @@ class EditableTerrainTile(TerrainTile):
         :param index: index of the vertex
         :param normal: the normal vector in the form [x,y,z]
         """
-        self.is_index_dirty = True
+        self.isIndexDirty = True
         self.vLight[index] = normal
 
-    def set_height(self, index, height):
+    def setHeight(self, index, height):
         # type: (int, float) -> void
         """
         Sets the height for the vertex  which is specified with the index,
@@ -109,64 +100,60 @@ class EditableTerrainTile(TerrainTile):
         :param index: index of the vertex
         :param height:the height at the specified vertex index
         """
-        height_is_dirty = False
+        isHeightDirty = height < self.header['minimumHeight'] or self.header[
+            'maximumHeight'] < height
 
-        if height < self.header['minimumHeight']:
-            height_is_dirty = True
-        if self.header['maximumHeight'] < height:
-            height_is_dirty = True
-
-        if height_is_dirty or self._changed_heights:
-            if not self._changed_heights:
-                self._changed_heights = [self._dequantize_height(x) for x in self.h]
-            self._changed_heights[index] = height
+        if isHeightDirty or self._changedHeights:
+            if not self._changedHeights:
+                self._changedHeights = [self._dequantizeHeight(x) for x in self.h]
+            self._changedHeights[index] = height
         else:
-            self.h[index] = self._quantize_height(height)
+            self.h[index] = self._quantizeHeight(height)
 
-    def get_height(self, index):
+    def getHeightAt(self, index):
         # type: (int) -> float
         """
         Returns the dequantized height at the specified vertex index
         :param index: index of the vertex
         :return: the height at the specified vertex
         """
-        height = self._dequantize_height(self.h[index])
+        height = self._dequantizeHeight(self.h[index])
         return height
 
-    def get_coordinate(self, index):
+    def getCoordinateAt(self, index):
         """
         Returns the dequantized coordinate at the specified vertex index
         :param index: index of the vertex
         :return: the wgs84 coordinate in the form [longitude, latitude, height]
         """
-        return self._uvh_to_llh(index)
+        return self._UVH2LLH(index)
 
-    def find_triangle_of(self, vertex_prev, vertex_next):
+    def findTriangleOf(self, indexOfPreviousVertex, indexOfNextVertex):
         """
         Returns the triangle where both given vertices are member of.
-        :param vertex_prev: index of the first (previous) vertex
-        :param vertex_next: index of the second (next) vertex
-        :return: the index of the queried triangle
+        :param indexOfPreviousVertex: index of the first (previous) vertex
+        :param indexOfNextVertex: index of the second (next) vertex
+        :return: the index of the queried triangle or None
         """
-        triangles_of_prev = self.find_all_triangles_of(vertex_prev)
-        triangles_of_next = self.find_all_triangles_of(vertex_next)
+        trianglesOfPrevious = self.findAllTrianglesOf(indexOfPreviousVertex)
+        trianglesOfNext = self.findAllTrianglesOf(indexOfNextVertex)
 
-        indices = list(triangles_of_prev & triangles_of_next)
+        indices = list(trianglesOfPrevious & trianglesOfNext)
         if indices:
             return indices[0]
 
         return None
 
-    def find_all_triangles_of(self, vertex):
+    def findAllTrianglesOf(self, indexOfVertex):
         """
         Searches for all triangles of the specified vertex index
         and returns the list of triangles
-        :param vertex: the vertex index
+        :param indexOfVertex: the vertex index
         :return: Array of triangle indices
         """
-        return set([int(i / 3) for i, v in enumerate(self.indices) if v == vertex])
+        return set([int(i / 3) for i, v in enumerate(self.indices) if v == indexOfVertex])
 
-    def get_triangle(self, index):
+    def getTriangleAt(self, index):
         """
         Returns the triangle for the specified index
         :param index: the index of the triangle
@@ -179,42 +166,42 @@ class EditableTerrainTile(TerrainTile):
         vi3 = self.indices[offset + 2]
         return vi1, vi2, vi3
 
-    def calculate_weighted_normals_for(self, triangle_indices):
+    def calculateWeightedNormalsFor(self, triangleIndices):
         """
         Calculates normal vectors for the specified triangles, this
         normal vectors are not normalized and multiplicated with the
-        area of participating triangle_index
+        area of participating triangleIndex
         :rtype: Array
         :param triangles:
         :return: Array of not normalized vectors [float,float,float]
         """
-        weighted_normals = []
-        for triangle_index in triangle_indices:
-            i0, i1, i2 = self.get_triangle(triangle_index)
-            llh0 = self._uvh_to_llh(i0)
-            llh1 = self._uvh_to_llh(i1)
-            llh2 = self._uvh_to_llh(i2)
+        weightedNormals = []
+        for triangleIndex in triangleIndices:
+            i0, i1, i2 = self.getTriangleAt(triangleIndex)
+            llh0 = self._UVH2LLH(i0)
+            llh1 = self._UVH2LLH(i1)
+            llh2 = self._UVH2LLH(i2)
             v0 = LLH2ECEF(llh0[0], llh0[1], llh0[2])
             v1 = LLH2ECEF(llh1[0], llh1[1], llh1[2])
             v2 = LLH2ECEF(llh2[0], llh2[1], llh2[2])
 
             normal = np.cross(c3d.subtract(v1, v0), c3d.subtract(v2, v0))
             area = triangleArea(v0, v1)
-            weighted_normals.append(normal * area)
+            weightedNormals.append(normal * area)
 
-        return weighted_normals
+        return weightedNormals
 
-    def toFile(self, file_path, gzipped=False):
-        if self.is_index_dirty:
-            self._rebuild_indices()
+    def toFile(self, filePath, gzipped=False):
+        if self.isIndexDirty:
+            self._rebuildIndices()
 
-        super(EditableTerrainTile, self).toFile(file_path, gzipped)
+        super(EditableTerrainTile, self).toFile(filePath, gzipped)
 
-    def fromFile(self, file_path, has_lighting=False, has_watermask=False, gzipped=False):
-        self._file_path = file_path
+    def fromFile(self, filePath, hasLighting=False, hasWatermask=False, gzipped=False):
+        self._filePath = filePath
         self._gzipped = gzipped
 
-        super(EditableTerrainTile, self).fromFile(file_path, has_lighting, gzipped)
+        super(EditableTerrainTile, self).fromFile(filePath, hasLighting, gzipped)
 
     def save(self):
         """
@@ -222,41 +209,41 @@ class EditableTerrainTile(TerrainTile):
         the old old state will be overwritten, if the tile is already loaded from a file
         :return: void
         """
-        if not self._file_path:
-            raise Exception("No _file_path defined")
+        if not self._filePath:
+            raise Exception("No _filePath defined")
 
-        target_dir_path = os.path.dirname(self._file_path)
-        if not os.path.exists(target_dir_path):
-            os.makedirs(target_dir_path)
+        targetDirectoryPath = os.path.dirname(self._filePath)
+        if not os.path.exists(targetDirectoryPath):
+            os.makedirs(targetDirectoryPath)
 
-        if os.path.exists(self._file_path):
-            os.remove(self._file_path)
+        if os.path.exists(self._filePath):
+            os.remove(self._filePath)
 
-        self.toFile(self._file_path, self._gzipped)
+        self.toFile(self._filePath, self._gzipped)
 
-    def save_to(self, target_dir_path, gzipped=False):
+    def saveTo(self, targetDirectoryPath, gzipped=False):
         """
         persists the current state of the tile into the specified directory path,
         if a tile with the same filename
         is existing, then the new file will overwrite these
-        :param target_dir_path: the path to the directory
+        :param targetDirectoryPath: the path to the directory
         :param gzipped: whether or not the terrain tile should be gzipped
         :return: void
         """
-        if self._file_path:
-            tile_file_name = os.path.basename(self._file_path)
+        if self._filePath:
+            tileFileName = os.path.basename(self._filePath)
         elif self.name:
-            tile_file_name = "{}.terrain".format(self.name)
+            tileFileName = "{}.terrain".format(self.name)
         else:
-            tile_file_name = 'editable_terrain.terrain'
-        if not os.path.exists(target_dir_path):
-            os.makedirs(target_dir_path)
+            tileFileName = 'editable_terrain.terrain'
+        if not os.path.exists(targetDirectoryPath):
+            os.makedirs(targetDirectoryPath)
 
-        file_path = os.path.join(target_dir_path, tile_file_name)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        filePath = os.path.join(targetDirectoryPath, tileFileName)
+        if os.path.exists(filePath):
+            os.remove(filePath)
 
-        self.toFile(file_path, gzipped)
+        self.toFile(filePath, gzipped)
 
     def toWKT(self, file_path):
         """
@@ -266,8 +253,8 @@ class EditableTerrainTile(TerrainTile):
         :return:void
         """
 
-        if self.is_index_dirty:
-            self._rebuild_indices()
+        if self.isIndexDirty:
+            self._rebuildIndices()
 
         with open(file_path, mode='w') as stream:
             vertices = self.getVerticesCoordinates()
@@ -280,9 +267,9 @@ class EditableTerrainTile(TerrainTile):
                 vi1 = next(indices)
                 vi2 = next(indices)
                 vi3 = next(indices)
-                llh1 = self._uvh_to_llh(vi1)
-                llh2 = self._uvh_to_llh(vi2)
-                llh3 = self._uvh_to_llh(vi3)
+                llh1 = self._UVH2LLH(vi1)
+                llh2 = self._UVH2LLH(vi2)
+                llh3 = self._UVH2LLH(vi3)
                 v1_str = "{:.14f} {:.14f} {:.14f}".format(llh1[0], llh1[1], llh1[2])
                 v2_str = "{:.14f} {:.14f} {:.14f}".format(llh2[0], llh2[1], llh2[2])
                 v3_str = "{:.14f} {:.14f} {:.14f}".format(llh3[0], llh3[1], llh3[2])
@@ -290,44 +277,44 @@ class EditableTerrainTile(TerrainTile):
                 stream.write("POLYGON Z(({0},{1},{2},{0})); {3}\n".format(v1_str, v2_str,
                                                                           v3_str, i))
 
-    def find_and_split_triangle(self, vertex_prev_index, vertex_next_index,
-                                coordinate_vertex_new):
+    def findAndSplitTriangle(self, indexOfPreviousVertex, indexOfNextVertex,
+                             splittingCoordinate):
         """
-        Finds and splits the triangle, specified by the vertex_prev_index and
-        vertex_next_index into two new triangles with vertex_insert as new
+        Finds and splits the triangle, specified by the indexOfPreviousVertex and
+        indexOfNextVertex into two new triangles with splittingCoordinate as new
         vertex of both triangles
-        :param vertex_prev_index:the index of the previous vertex for the new vertex
-        :param vertex_next_index:the index of the next vertex for the new vertex
-        :param coordinate_vertex_new: the wgs84 coordinate of the vertex between
-                vertex_prev and vertex_next
+        :param indexOfPreviousVertex:the index of the previous vertex for the new vertex
+        :param indexOfNextVertex:the index of the next vertex for the new vertex
+        :param splittingCoordinate: the wgs84 coordinate of the vertex between
+                previous vertex and next vertex
         :return: the index of the new vertex
         """
 
-        triangle_index = self.find_triangle_of(vertex_prev_index, vertex_next_index)
-        if triangle_index is None:
+        triangleIndex = self.findTriangleOf(indexOfPreviousVertex, indexOfNextVertex)
+        if triangleIndex is None:
             raise Exception('No triangle found for Vertex')
 
-        self.is_index_dirty = True
-        old_triangle = list(self.get_triangle(triangle_index))
-        new_triangle = list(old_triangle)
+        self.isIndexDirty = True
+        oldTriangle = list(self.getTriangleAt(triangleIndex))
+        newTriangle = list(oldTriangle)
 
-        longitude, latitude, height = coordinate_vertex_new
-        u = self._quantize_longitude(longitude)
-        v = self._quantize_latitude(latitude)
+        longitude, latitude, height = splittingCoordinate
+        u = self._quantizeLongitude(longitude)
+        v = self._quantizeLatitude(latitude)
 
         # insert new vertex in u,v,h
         self.u.append(u)
         self.v.append(v)
-        vertex_new_index = len(self.u) - 1
+        indexOfNewVertex = len(self.u) - 1
 
         if self.header['minimumHeight'] < height < self.header['maximumHeight']:
-            if self._changed_heights:
-                self._changed_heights.append(height)
-            h = self._quantize_height(height)
+            if self._changedHeights:
+                self._changedHeights.append(height)
+            h = self._quantizeHeight(height)
         else:
-            if not self._changed_heights:
-                self._changed_heights = [self._dequantize_height(x) for x in self.h]
-            self._changed_heights.append(height)
+            if not self._changedHeights:
+                self._changedHeights = [self._dequantizeHeight(x) for x in self.h]
+            self._changedHeights.append(height)
             h = 0
 
         self.h.append(h)
@@ -338,118 +325,118 @@ class EditableTerrainTile(TerrainTile):
         self.vLight.append(null_normal)
 
         # update triangle with new vertex index
-        vertex_offset = old_triangle.index(vertex_next_index)
-        old_triangle[vertex_offset] = vertex_new_index
+        vertexOffset = oldTriangle.index(indexOfNextVertex)
+        oldTriangle[vertexOffset] = indexOfNewVertex
 
         # create new triangle with 'vertex_insert'
-        new_triangle[new_triangle.index(vertex_prev_index)] = vertex_new_index
+        newTriangle[newTriangle.index(indexOfPreviousVertex)] = indexOfNewVertex
 
-        triangle_offset = (triangle_index * 3)
+        triangleOffset = (triangleIndex * 3)
         # update old triangle in indices-Array
-        self.indices[int(triangle_offset + vertex_offset)] = vertex_new_index
+        self.indices[int(triangleOffset + vertexOffset)] = indexOfNewVertex
         # add new triangle to indices-Array
         if type(self.indices) == numpy.ndarray:
             self.indices = list(self.indices)
-        self.indices.extend(new_triangle)
+        self.indices.extend(newTriangle)
         self._triangles = []
 
-        return vertex_new_index
+        return indexOfNewVertex
 
-    def rebuild_h(self):
+    def rebuildH(self):
         """
         Requantize the heights and sets min/max heights of this tile, if heights are
         changed, otherwise nothing will happens
         """
-        if self._changed_heights:
-            new_max = max(self._changed_heights)
-            new_min = min(self._changed_heights)
+        if self._changedHeights:
+            newMax = max(self._changedHeights)
+            newMin = min(self._changedHeights)
 
-            deniv = new_max - new_min
-            b_height = old_div(MAX, deniv)
-            for i in range(len(self._changed_heights)):
-                changed_height = self._changed_heights[i]
-                h = int(round((changed_height - new_min) * b_height))
+            deniv = newMax - newMin
+            b_height = old_div(TerrainTile.MAX, deniv)
+            for i in range(len(self._changedHeights)):
+                changed_height = self._changedHeights[i]
+                h = int(round((changed_height - newMin) * b_height))
                 if h < 0:
                     h = 0
-                if h > MAX:
-                    h = MAX
+                if h > TerrainTile.MAX:
+                    h = TerrainTile.MAX
                 self.h[i] = h
 
-            self.header['minimumHeight'] = new_min
-            self.header['maximumHeight'] = new_max
-            self._changed_heights = []
+            self.header['minimumHeight'] = newMin
+            self.header['maximumHeight'] = newMax
+            self._changedHeights = []
 
-    def _rebuild_indices(self):
+    def _rebuildIndices(self):
         """
-        Private method, should only used internally if any edits
+        Private method, should only be used internally if any edits
         on self.u, self.v, self.h  are made.
         """
-        if self._changed_heights:
-            self.rebuild_h()
-        size_indices = len(self.indices)
-        size_uvh = len(self.u)
-        new_u = [None] * size_uvh
-        new_v = [None] * size_uvh
-        new_h = [None] * size_uvh
-        new_v_light = [None] * size_uvh
-        new_indices = [None] * size_indices
-        index_map = [None] * size_uvh
+        if self._changedHeights:
+            self.rebuildH()
+        sizeIndices = len(self.indices)
+        sizeUVH = len(self.u)
+        newU = [None] * sizeUVH
+        newV = [None] * sizeUVH
+        newH = [None] * sizeUVH
+        newVLight = [None] * sizeUVH
+        newIndices = [None] * sizeIndices
+        indexMap = [None] * sizeUVH
 
-        new_index = 0
-        for position, old_i in enumerate(self.indices):
-            if index_map[old_i]:
-                (new_i, positions) = index_map[old_i]
+        newIndex = 0
+        for position, oldIndex in enumerate(self.indices):
+            if indexMap[oldIndex]:
+                (index, positions) = indexMap[oldIndex]
                 positions.append(position)
             else:
-                index_map[old_i] = (new_index, [position])
-                new_index += 1
+                indexMap[oldIndex] = (newIndex, [position])
+                newIndex += 1
 
-        for old_i, data in enumerate(index_map):
-            (new_i, positions) = data
-            new_u[new_i] = (self.u[old_i])
-            new_v[new_i] = (self.v[old_i])
-            new_h[new_i] = (self.h[old_i])
-            new_v_light[new_i] = (self.vLight[old_i])
+        for oldIndex, data in enumerate(indexMap):
+            (newIndex, positions) = data
+            newU[newIndex] = (self.u[oldIndex])
+            newV[newIndex] = (self.v[oldIndex])
+            newH[newIndex] = (self.h[oldIndex])
+            newVLight[newIndex] = (self.vLight[oldIndex])
 
             for position in positions:
-                new_indices[position] = new_i
+                newIndices[position] = newIndex
 
-        if len(self.indices) == len(new_indices):
-            self.indices = new_indices
+        if len(self.indices) == len(newIndices):
+            self.indices = newIndices
         else:
             raise Exception("Array-Size of Indices not equal")
 
-        self.u = new_u
-        self.v = new_v
-        self.h = new_h
-        self.vLight = new_v_light
+        self.u = newU
+        self.v = newV
+        self.h = newH
+        self.vLight = newVLight
 
-        self.westI = self.get_edge_vertices('w')
-        self.southI = self.get_edge_vertices('s')
-        self.eastI = self.get_edge_vertices('e')
-        self.northI = self.get_edge_vertices('n')
+        self.westI = self.getEdgeIndices('w')
+        self.southI = self.getEdgeIndices('s')
+        self.eastI = self.getEdgeIndices('e')
+        self.northI = self.getEdgeIndices('n')
 
-    def _quantize_latitude(self, latitude):
+    def _quantizeLatitude(self, latitude):
         """
         Private helper method to convert latitude values to quantized tile (v) values
         :param latitude: the wgs 84 latitude in degrees
         :return: the quantized value (v)
         """
-        b_lat = old_div(MAX, (self._north - self._south))
+        b_lat = old_div(TerrainTile.MAX, (self._north - self._south))
         v = int(round((latitude - self._south) * b_lat))
         return v
 
-    def _quantize_longitude(self, longitude):
+    def _quantizeLongitude(self, longitude):
         """
         Private helper method to convert longitude values to quantized tile (u) values
         :param longitude: the wgs 84 longitude in degrees
         :return: the quantized value (u)
         """
-        b_lon = old_div(MAX, (self._east - self._west))
+        b_lon = old_div(TerrainTile.MAX, (self._east - self._west))
         u = int(round((longitude - self._west) * b_lon))
         return u
 
-    def _quantize_height(self, height):
+    def _quantizeHeight(self, height):
         """
         Private helper method to convert height values to quantized tile (h) values
         :param height: the wgs 84 height in ground units (meter)
@@ -460,11 +447,11 @@ class EditableTerrainTile(TerrainTile):
         if deniv == 0:
             h = 0
         else:
-            b_height = old_div(MAX, deniv)
+            b_height = old_div(TerrainTile.MAX, deniv)
             h = int(round((height - self.header['minimumHeight']) * b_height))
         return h
 
-    def _dequantize_height(self, h):
+    def _dequantizeHeight(self, h):
         """
         Private helper method to convert quantized tile (h) values to real world height
         values
@@ -473,15 +460,17 @@ class EditableTerrainTile(TerrainTile):
         """
         return lerp(self.header['minimumHeight'],
                     self.header['maximumHeight'],
-                    old_div(float(h), MAX))
+                    old_div(float(h), TerrainTile.MAX))
 
-    def _uvh_to_llh(self, index):
+    def _UVH2LLH(self, index):
         """
         Private helper method to convert quantized tile vertex to wgs84 coordinate
         :param index: the index of the specified vertex
         :return: wgs84 coordinate
         """
-        longitude = (lerp(self._west, self._east, old_div(float(self.u[index]), MAX)))
-        latitude = (lerp(self._south, self._north, old_div(float(self.v[index]), MAX)))
-        height = self._dequantize_height(self.h[index])
+        longitude = (
+            lerp(self._west, self._east, old_div(float(self.u[index]), TerrainTile.MAX)))
+        latitude = (lerp(self._south, self._north,
+                         old_div(float(self.v[index]), TerrainTile.MAX)))
+        height = self._dequantizeHeight(self.h[index])
         return longitude, latitude, height

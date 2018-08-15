@@ -6,9 +6,9 @@ from tests import data_utils
 
 class TestEditableTerrainTile(unittest.TestCase):
     def setUp(self):
-        self.quantized_triangles = data_utils.read_quantized_triangles()
+        self.quantizedTriangles = data_utils.readQuantizedTriangles()
 
-    def test_get_edge_coordinates(self):
+    def testGetEdgeCoordinates(self):
         # arrange
         x = 17388
         y = 12517
@@ -16,76 +16,76 @@ class TestEditableTerrainTile(unittest.TestCase):
         edge = 'w'
 
         # act
-        tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
-        coordinates = tile.get_edge_coordinates(edge)
+        tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
+        coordinates = tile.getEdgeCoordinates(edge)
 
         # assert
         self.assertTrue(len(coordinates) == 2)
         self.assertTrue(len(coordinates[0]) == 3)
 
-    def test_toWKT(self):
+    def testToWKT(self):
         # arrange
         x = 17388
         y = 12517
         z = 14
-        wkt_path = os.path.join(data_utils.get_tmp_path(), 'test.wkt')
+        wktPath = os.path.join(data_utils.getTempPath(), 'test.wkt')
 
         try:
             # act
-            tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
-            tile.toWKT(wkt_path)
+            tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
+            tile.toWKT(wktPath)
             # assert
-            with open(wkt_path, mode='r') as wkt_file:
-                lines = wkt_file.readlines()
+            with open(wktPath, mode='r') as wktFile:
+                lines = wktFile.readlines()
             self.assertGreater(len(lines), 0)
         finally:
-            os.remove(wkt_path)
+            os.remove(wktPath)
 
-    def test_set_height_min(self):
+    def testSetHeight_withHeightUnderMin(self):
         # arrange
         x = 17388
         y = 12517
         z = 14
-        expected_height = 0
+        expectedHeight = 0
 
         # act
-        tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
-        tile.set_height(0, -1.0)
-        tile.rebuild_h()
-        actual_height = tile.h[0]
+        tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
+        tile.setHeight(0, -1.0)
+        tile.rebuildH()
+        actualHeight = tile.h[0]
 
         # assert
-        self.assertEquals(actual_height, expected_height)
+        self.assertEquals(actualHeight, expectedHeight)
 
-    def test_set_height_max(self):
+    def testSetHeight_withHeightOverMax(self):
         # arrange
         x = 17388
         y = 12517
         z = 14
-        expected_height = 9999
+        expectedHeight = 9999
 
         # act
-        tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
-        tile.set_height(0, 9999)
-        tile.rebuild_h()
-        actual_height = tile.get_height(0)
+        tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
+        tile.setHeight(0, 9999)
+        tile.rebuildH()
+        actualHeight = tile.getHeightAt(0)
 
         # assert
-        self.assertEquals(actual_height, expected_height)
+        self.assertEquals(actualHeight, expectedHeight)
 
-    def test_save_expected_exception(self):
+    def testSave_expectedException(self):
         # arrange
         x = 17388
         y = 12517
         z = 14
 
         # act
-        tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
+        tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
 
         # assert
         self.assertRaises(Exception, tile.save)
 
-    def test_save_expected_existing_file(self):
+    def testSave_expectedExistingFile(self):
         # arrange
         x = 17388
         y = 12517
@@ -93,13 +93,13 @@ class TestEditableTerrainTile(unittest.TestCase):
 
         try:
             # act
-            tile = data_utils.build_terrain_tile(self.quantized_triangles, x, y, z)
-            test_path = os.path.join(data_utils.get_tmp_path(), "test.terrain")
-            tile._file_path = test_path
+            tile = data_utils.buildTerrainTile(self.quantizedTriangles, x, y, z)
+            testPath = os.path.join(data_utils.getTempPath(), "test.terrain")
+            tile._filePath = testPath
             tile.save()
 
             # assert
-            self.assertTrue(os.path.exists(test_path))
+            self.assertTrue(os.path.exists(testPath))
         finally:
-            if os.path.exists(test_path):
-                os.remove(test_path)
+            if os.path.exists(testPath):
+                os.remove(testPath)

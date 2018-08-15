@@ -16,21 +16,21 @@ def lerp(p, q, time):
     return ((1.0 - time) * p) + (time * q)
 
 
-def get_tmp_path():
-    current_system = platform.system()
-    if 'Windows' is current_system:
+def getTempPath():
+    currentSystem = platform.system()
+    if 'Windows' is currentSystem:
         return 'c:/Temp/'
     else:
         return '/tmp/'
 
 
-def get_tile(z, x, y):
-    terrain_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                'data/%s_%s_%s.terrain' % (z, x, y))
-    return load_tile(terrain_path, x, y, z)
+def getTile(z, x, y):
+    terrainPath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'data/%s_%s_%s.terrain' % (z, x, y))
+    return loadTile(terrainPath, x, y, z)
 
 
-def load_tile(terrain_path, x, y, z):
+def loadTile(terrainPath, x, y, z):
     """
 
     :rtype: EditableTerrainTile
@@ -38,37 +38,37 @@ def load_tile(terrain_path, x, y, z):
     geodetic = GlobalGeodetic(True)
     [minx, miny, maxx, maxy] = geodetic.TileBounds(x, y, z)
     tile = EditableTerrainTile(west=minx, south=miny, east=maxx, north=maxy)
-    tile.fromFile(terrain_path, has_lighting=True)
+    tile.fromFile(terrainPath, hasLighting=True)
     return tile
 
 
-def build_terrain_tile(quantized_triangles, x, y, z, min_h=0, max_h=500,
-                       has_lightning=True):
+def buildTerrainTile(quantizedTriangles, x, y, z, minH=0, maxH=500,
+                     hasLightning=True):
     geodetic = GlobalGeodetic(True)
-    [minx, miny, maxx, maxy] = geodetic.TileBounds(x, y, z)
+    [minX, minY, maxX, maxY] = geodetic.TileBounds(x, y, z)
 
     triangles = []
-    for quantized_triangle in quantized_triangles:
+    for quantizedTriangle in quantizedTriangles:
         triangle = []
-        for quantized_vertex in quantized_triangle:
-            longitude = (lerp(minx, maxx, old_div(float(quantized_vertex[0]), MAX)))
-            latitude = (lerp(miny, maxy, old_div(float(quantized_vertex[1]), MAX)))
-            height = (lerp(min_h, max_h, old_div(float(quantized_vertex[2]), MAX)))
+        for quantizedVertex in quantizedTriangle:
+            longitude = (lerp(minX, maxX, old_div(float(quantizedVertex[0]), MAX)))
+            latitude = (lerp(minY, maxY, old_div(float(quantizedVertex[1]), MAX)))
+            height = (lerp(minH, maxH, old_div(float(quantizedVertex[2]), MAX)))
             triangle.append([longitude, latitude, height])
         triangles.append(triangle)
 
     topology = TerrainTopology(geometries=triangles, autocorrectGeometries=True,
-                               hasLighting=has_lightning)
-    tile = EditableTerrainTile(west=minx, south=miny, east=maxx, north=maxy)
-    tile.set_name("{}_{}_{}".format(z, x, y))
+                               hasLighting=hasLightning)
+    tile = EditableTerrainTile(west=minX, south=minY, east=maxX, north=maxY)
+    tile.setName("{}_{}_{}".format(z, x, y))
     tile.fromTerrainTopology(topology)
     return tile
 
 
-def read_quantized_triangles():
-    quantized_triangles_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                            'data/quantizedTriangles.json')
-    with open(quantized_triangles_path, mode='r') as json_file:
+def readQuantizedTriangles():
+    quantizedTrianglesPath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          'data/quantizedTriangles.json')
+    with open(quantizedTrianglesPath, mode='r') as json_file:
         data = json.load(json_file)
-        quantized_triangles = data['triangles']
-    return quantized_triangles
+        quantizedTriangles = data['triangles']
+    return quantizedTriangles

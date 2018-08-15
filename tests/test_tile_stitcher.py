@@ -10,298 +10,298 @@ from tests import data_utils
 class TestTileStitcher(unittest.TestCase):
 
     def setUp(self):
-        self.quantized_triangles = data_utils.read_quantized_triangles()
+        self.quantizedTriangles = data_utils.readQuantizedTriangles()
 
-    def test_constructor(self):
+    def testConstructor(self):
         # arrange
-        center_x = 17388
-        center_y = 12517
-        center_z = 14
+        centerX = 17388
+        centerY = 12517
+        centerZ = 14
 
-        neighbour_x = 17388
-        neighbour_y = 12518
-        neighbour_z = 14
+        neighbourX = 17388
+        neighbourY = 12518
+        neighbourZ = 14
 
         # act
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        neighbour_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                       neighbour_x,
-                                                       neighbour_y,
-                                                       neighbour_z)
-        TileStitcher(center_tile)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        neighbourTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                    neighbourX,
+                                                    neighbourY,
+                                                    neighbourZ)
+        TileStitcher(centerTile)
 
         # assert
-        self.assertIsInstance(center_tile, TerrainTile)
-        self.assertIsInstance(neighbour_tile, TerrainTile)
+        self.assertIsInstance(centerTile, TerrainTile)
+        self.assertIsInstance(neighbourTile, TerrainTile)
 
-    def test_getEdgeConnection(self):
+    def testGetEdgeConnection(self):
         # arrange
-        center_x = 17388
-        center_y = 12517
-        center_z = 14
+        centerX = 17388
+        centerY = 12517
+        centerZ = 14
 
-        neighbour_x = 17388
-        neighbour_y = 12518
-        neighbour_z = 14
+        neighbourX = 17388
+        neighbourY = 12518
+        neighbourZ = 14
 
         # act
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        neighbour_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                       neighbour_x,
-                                                       neighbour_y,
-                                                       neighbour_z)
-        stitcher = TileStitcher(center_tile)
-        edge_connection = stitcher._get_edge_connection(neighbour_tile)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        neighbourTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                    neighbourX,
+                                                    neighbourY,
+                                                    neighbourZ)
+        stitcher = TileStitcher(centerTile)
+        edgeConnection = stitcher._getEdgeConnection(neighbourTile)
 
         # assert
-        self.assertIs(edge_connection, 'n')
-        self.assertIsNotNone(edge_connection)
+        self.assertIs(edgeConnection, 'n')
+        self.assertIsNotNone(edgeConnection)
 
-    def test_stitch_together_with_south(self):
+    def testStitchTogetherWithSouth(self):
         # arrange
-        center_x = 4347
-        center_y = 3128
-        center_z = 12
+        centerX = 4347
+        centerY = 3128
+        centerZ = 12
 
-        neighbour_x = 4347
-        neighbour_y = 3127
-        neighbour_z = 12
+        neighbourX = 4347
+        neighbourY = 3127
+        neighbourZ = 12
 
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        neighbour_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                       neighbour_x,
-                                                       neighbour_y,
-                                                       neighbour_z)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        neighbourTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                    neighbourX,
+                                                    neighbourY,
+                                                    neighbourZ)
 
         # act
-        stitcher = TileStitcher(center_tile)
-        stitcher.add_neighbour(neighbour_tile)
-        stitcher.stitch_together()
-        stitcher.save_to(data_utils.get_tmp_path())
+        stitcher = TileStitcher(centerTile)
+        stitcher.addNeighbour(neighbourTile)
+        stitcher.stitchTogether()
+        stitcher.saveTo(data_utils.getTempPath())
 
         # assert
-        center_tile = tile_stitcher.load_tile(
-            os.path.join(data_utils.get_tmp_path(), '12_4347_3128.terrain'),
-            center_x,
-            center_y,
-            center_z)
-        neighbour_tile = tile_stitcher.load_tile(
-            os.path.join(data_utils.get_tmp_path(), '12_4347_3127.terrain'),
-            neighbour_x,
-            neighbour_y,
-            neighbour_z)
+        centerTile = tile_stitcher.loadTile(
+            os.path.join(data_utils.getTempPath(), '12_4347_3128.terrain'),
+            centerX,
+            centerY,
+            centerZ)
+        neighbourTile = tile_stitcher.loadTile(
+            os.path.join(data_utils.getTempPath(), '12_4347_3127.terrain'),
+            neighbourX,
+            neighbourY,
+            neighbourZ)
 
-        center_vertices_count = len(center_tile.get_edge_vertices(edge='s'))
-        neighbour_vertices_count = len(neighbour_tile.get_edge_vertices(edge='n'))
+        centerVerticesCount = len(centerTile.getEdgeIndices(edge='s'))
+        neighbourVerticesCount = len(neighbourTile.getEdgeIndices(edge='n'))
 
-        self.assertTrue(center_vertices_count == neighbour_vertices_count)
+        self.assertTrue(centerVerticesCount == neighbourVerticesCount)
 
-    def test_stitch_with_west_east(self):
+    def testStitchWithWestEast(self):
         # arrange
-        center_x = 4347
-        center_y = 3128
-        center_z = 12
+        centerX = 4347
+        centerY = 3128
+        centerZ = 12
 
-        neighbour_x = 4348
-        neighbour_y = 3128
-        neighbour_z = 12
+        neighbourX = 4348
+        neighbourY = 3128
+        neighbourZ = 12
 
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        neighbour_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                       neighbour_x,
-                                                       neighbour_y,
-                                                       neighbour_z)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        neighbourTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                    neighbourX,
+                                                    neighbourY,
+                                                    neighbourZ)
 
         # act
-        stitcher = TileStitcher(center_tile)
-        stitcher.add_neighbour(neighbour_tile)
-        stitcher.stitch_together()
+        stitcher = TileStitcher(centerTile)
+        stitcher.addNeighbour(neighbourTile)
+        stitcher.stitchTogether()
 
         # assert
-        center_vertices_count = len(center_tile.get_edge_vertices(edge='e'))
-        neighbour_vertices_count = len(neighbour_tile.get_edge_vertices(edge='w'))
-        self.assertTrue(center_vertices_count == neighbour_vertices_count)
+        centerVerticesCount = len(centerTile.getEdgeIndices(edge='e'))
+        neighbourVerticesCount = len(neighbourTile.getEdgeIndices(edge='w'))
+        self.assertTrue(centerVerticesCount == neighbourVerticesCount)
 
-    def test_stitch_with_east_and_south(self):
+    def testStitchWithEastAndSouth(self):
         # arrange
-        center_x = 4346
-        center_y = 3127
-        center_z = 12
+        centerX = 4346
+        centerY = 3127
+        centerZ = 12
 
-        east_x = 4347
-        east_y = 3127
-        east_z = 12
+        eastX = 4347
+        eastY = 3127
+        eastZ = 12
 
-        south_x = 4346
-        south_y = 3126
-        south_z = 12
+        southX = 4346
+        southY = 3126
+        southZ = 12
 
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        east_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                  east_x,
-                                                  east_y,
-                                                  east_z)
-        south_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                   south_x,
-                                                   south_y,
-                                                   south_z)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        eastTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                               eastX,
+                                               eastY,
+                                               eastZ)
+        southTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                southX,
+                                                southY,
+                                                southZ)
 
         # act
-        stitcher = TileStitcher(center_tile)
-        stitcher.add_neighbour(east_tile)
-        stitcher.add_neighbour(south_tile)
-        stitcher.stitch_together()
-        stitcher.save_to(data_utils.get_tmp_path())
+        stitcher = TileStitcher(centerTile)
+        stitcher.addNeighbour(eastTile)
+        stitcher.addNeighbour(southTile)
+        stitcher.stitchTogether()
+        stitcher.saveTo(data_utils.getTempPath())
 
         # assert
-        center_to_east_vertices_count = len(center_tile.get_edge_vertices(edge='e'))
-        center_to_south_vertices_count = len(center_tile.get_edge_vertices(edge='s'))
-        east_vertices_count = len(east_tile.get_edge_vertices(edge='w'))
-        south_vertices_count = len(south_tile.get_edge_vertices(edge='n'))
+        centerToEastVerticesCount = len(centerTile.getEdgeIndices(edge='e'))
+        centerToSouthVerticesCount = len(centerTile.getEdgeIndices(edge='s'))
+        eastVerticesCount = len(eastTile.getEdgeIndices(edge='w'))
+        southVerticesCount = len(southTile.getEdgeIndices(edge='n'))
 
-        self.assertTrue(center_to_east_vertices_count == east_vertices_count)
-        self.assertTrue(center_to_south_vertices_count == south_vertices_count)
+        self.assertTrue(centerToEastVerticesCount == eastVerticesCount)
+        self.assertTrue(centerToSouthVerticesCount == southVerticesCount)
 
-    def test_stitch_with_east_and_south_z14x17380y12516(self):
+    def testStitchWithEastAndSouth_z14x17380y12516(self):
         # arrange
-        center_x = 17380
-        center_y = 12516
-        center_z = 14
+        centerX = 17380
+        centerY = 12516
+        centerZ = 14
 
-        east_x = 17381
-        east_y = 12516
-        east_z = 14
+        eastX = 17381
+        eastY = 12516
+        eastZ = 14
 
-        south_x = 17380
-        south_y = 12515
-        south_z = 14
+        southX = 17380
+        southY = 12515
+        southZ = 14
 
-        center_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                    center_x,
-                                                    center_y,
-                                                    center_z)
-        east_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                  east_x,
-                                                  east_y,
-                                                  east_z)
-        south_tile = data_utils.build_terrain_tile(self.quantized_triangles,
-                                                   south_x,
-                                                   south_y,
-                                                   south_z)
+        centerTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                 centerX,
+                                                 centerY,
+                                                 centerZ)
+        eastTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                               eastX,
+                                               eastY,
+                                               eastZ)
+        southTile = data_utils.buildTerrainTile(self.quantizedTriangles,
+                                                southX,
+                                                southY,
+                                                southZ)
 
         # act
-        stitcher = TileStitcher(center_tile)
-        stitcher.add_neighbour(east_tile)
-        stitcher.add_neighbour(south_tile)
-        stitcher.stitch_together()
+        stitcher = TileStitcher(centerTile)
+        stitcher.addNeighbour(eastTile)
+        stitcher.addNeighbour(southTile)
+        stitcher.stitchTogether()
 
         # assert
-        center_to_east_vertices_count = len(center_tile.get_edge_vertices(edge='e'))
-        center_to_south_vertices_count = len(center_tile.get_edge_vertices(edge='s'))
-        east_vertices_count = len(east_tile.get_edge_vertices(edge='w'))
-        south_vertices_count = len(south_tile.get_edge_vertices(edge='n'))
+        centerToEastVerticesCount = len(centerTile.getEdgeIndices(edge='e'))
+        centerToSouthVerticesCount = len(centerTile.getEdgeIndices(edge='s'))
+        eastVerticesCount = len(eastTile.getEdgeIndices(edge='w'))
+        southVerticesCount = len(southTile.getEdgeIndices(edge='n'))
 
-        self.assertTrue(center_to_east_vertices_count == east_vertices_count)
-        self.assertTrue(center_to_south_vertices_count == south_vertices_count)
+        self.assertTrue(centerToEastVerticesCount == eastVerticesCount)
+        self.assertTrue(centerToSouthVerticesCount == southVerticesCount)
 
-    def test_harmonize_with_east_and_south(self):
+    def testHarmonizeWithEastAndSouth(self):
         # arrange
-        expected_changes = 71
-        center_x = 67
-        center_y = 49
-        center_z = 6
+        expectedChanges = 71
+        centerX = 67
+        centerY = 49
+        centerZ = 6
 
-        east_x = 68
-        east_y = 49
-        east_z = 6
+        eastX = 68
+        eastY = 49
+        eastZ = 6
 
-        south_x = 67
-        south_y = 48
-        south_z = 6
+        southX = 67
+        southY = 48
+        southZ = 6
 
-        center_tile = data_utils.get_tile(center_z, center_x, center_y)
-        east_tile = data_utils.get_tile(east_z, east_x, east_y)
-        south_tile = data_utils.get_tile(south_z, south_x, south_y)
-        normal_vectors_before = list(center_tile.vLight)
+        centerTile = data_utils.getTile(centerZ, centerX, centerY)
+        eastTile = data_utils.getTile(eastZ, eastX, eastY)
+        southTile = data_utils.getTile(southZ, southX, southY)
+        normalVectorsBefore = list(centerTile.vLight)
 
         # act
-        stitcher = TileStitcher(center_tile)
-        stitcher.add_neighbour(east_tile)
-        stitcher.add_neighbour(south_tile)
-        stitcher.harmonize_normals()
-        normal_vectors_after = list(center_tile.vLight)
+        stitcher = TileStitcher(centerTile)
+        stitcher.addNeighbour(eastTile)
+        stitcher.addNeighbour(southTile)
+        stitcher.harmonizeNormals()
+        normalVectorsAfter = list(centerTile.vLight)
 
         # assert
         changes = []
-        for i, normal in enumerate(normal_vectors_before):
-            normal_before = set(normal)
-            normal_after = set(normal_vectors_after[i])
-            changed = normal_before.difference(normal_after)
+        for i, normal in enumerate(normalVectorsBefore):
+            normalsBefore = set(normal)
+            normalsAfter = set(normalVectorsAfter[i])
+            changed = normalsBefore.difference(normalsAfter)
             if changed:
                 changes.append(i)
 
-        actual_changes = len(changes)
-        self.assertTrue(actual_changes == expected_changes)
+        actualChanges = len(changes)
+        self.assertTrue(actualChanges == expectedChanges)
 
-    def test_get_neighbours(self):
+    def testGetNeighbours(self):
         # arrange
-        center_x = 17380
-        center_y = 12516
-        center_z = 14
+        centerX = 17380
+        centerY = 12516
+        centerZ = 14
 
-        expected_west = [14, 17379, 12516]
-        expected_north = [14, 17380, 12517]
-        expected_east = [14, 17381, 12516]
-        expected_south = [14, 17380, 12515]
+        expectedWest = [14, 17379, 12516]
+        expectedNorth = [14, 17380, 12517]
+        expectedEast = [14, 17381, 12516]
+        expectedSouth = [14, 17380, 12515]
 
         # act
-        neighbours = tile_stitcher.get_neighbours(center_z, center_x, center_y)
+        neighbours = tile_stitcher.getNeighbours(centerZ, centerX, centerY)
 
         # assert
-        self.assertSequenceEqual(neighbours['west'], expected_west)
-        self.assertSequenceEqual(neighbours['north'], expected_north)
-        self.assertSequenceEqual(neighbours['east'], expected_east)
-        self.assertSequenceEqual(neighbours['south'], expected_south)
+        self.assertSequenceEqual(neighbours['west'], expectedWest)
+        self.assertSequenceEqual(neighbours['north'], expectedNorth)
+        self.assertSequenceEqual(neighbours['east'], expectedEast)
+        self.assertSequenceEqual(neighbours['south'], expectedSouth)
 
-    def test_get_neighbours_south_east(self):
+    def testGetNeighboursSouthEast(self):
         # arrange
-        center_x = 17380
-        center_y = 12516
-        center_z = 14
+        centerX = 17380
+        centerY = 12516
+        centerZ = 14
 
-        expected_east = [14, 17381, 12516]
-        expected_south = [14, 17380, 12515]
+        expectedEast = [14, 17381, 12516]
+        expectedSouth = [14, 17380, 12515]
 
         # act
-        neighbours = tile_stitcher.get_neighbours_south_east(center_z, center_x, center_y)
+        neighbours = tile_stitcher.getNeighboursSouthEast(centerZ, centerX, centerY)
 
         # assert
-        self.assertSequenceEqual(neighbours['east'], expected_east)
-        self.assertSequenceEqual(neighbours['south'], expected_south)
+        self.assertSequenceEqual(neighbours['east'], expectedEast)
+        self.assertSequenceEqual(neighbours['south'], expectedSouth)
 
-    def test_EdgeConnection_repr(self):
+    def testEdgeConnection_repr(self):
         # arrange
         expected_repr_start = 'E:w [1] -> ({'
 
         # act
         ec = EdgeConnection('w', 1)
-        ec.add_side('w', 2)
-        ec.add_side('c', 3)
+        ec.addSide('w', 2)
+        ec.addSide('c', 3)
         actual_repr = ec.__repr__()
 
         # assert
