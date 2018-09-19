@@ -416,52 +416,6 @@ class EditableTerrainTile(TerrainTile):
         self.eastI = self.getEdgeIndices('e')
         self.northI = self.getEdgeIndices('n')
 
-    def _quantizeLatitude(self, latitude):
-        """
-        Private helper method to convert latitude values to quantized tile (v) values
-        :param latitude: the wgs 84 latitude in degrees
-        :return: the quantized value (v)
-        """
-        b_lat = old_div(TerrainTile.MAX, (self._north - self._south))
-        v = int(round((latitude - self._south) * b_lat))
-        return v
-
-    def _quantizeLongitude(self, longitude):
-        """
-        Private helper method to convert longitude values to quantized tile (u) values
-        :param longitude: the wgs 84 longitude in degrees
-        :return: the quantized value (u)
-        """
-        b_lon = old_div(TerrainTile.MAX, (self._east - self._west))
-        u = int(round((longitude - self._west) * b_lon))
-        return u
-
-    def _quantizeHeight(self, height):
-        """
-        Private helper method to convert height values to quantized tile (h) values
-        :param height: the wgs 84 height in ground units (meter)
-        :return: the quantized value (h)
-        """
-        deniv = self.header['maximumHeight'] - self.header['minimumHeight']
-        # In case a tile is completely flat
-        if deniv == 0:
-            h = 0
-        else:
-            b_height = old_div(TerrainTile.MAX, deniv)
-            h = int(round((height - self.header['minimumHeight']) * b_height))
-        return h
-
-    def _dequantizeHeight(self, h):
-        """
-        Private helper method to convert quantized tile (h) values to real world height
-        values
-        :param h: the quantized height value
-        :return: the height in ground units (meter)
-        """
-        return lerp(self.header['minimumHeight'],
-                    self.header['maximumHeight'],
-                    old_div(float(h), TerrainTile.MAX))
-
     def _UVH2LLH(self, index):
         """
         Private helper method to convert quantized tile vertex to wgs84 coordinate

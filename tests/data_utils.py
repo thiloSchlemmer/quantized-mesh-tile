@@ -8,12 +8,7 @@ from future.utils import old_div
 from quantized_mesh_tile import TerrainTopology
 from quantized_mesh_tile.editable_terrain import EditableTerrainTile
 from quantized_mesh_tile.global_geodetic import GlobalGeodetic
-
-MAX = 32767.0
-
-
-def lerp(p, q, time):
-    return ((1.0 - time) * p) + (time * q)
+from quantized_mesh_tile.terrain import lerp, TerrainTile
 
 
 def getTempPath():
@@ -51,9 +46,9 @@ def buildTerrainTile(quantizedTriangles, x, y, z, minH=0, maxH=500,
     for quantizedTriangle in quantizedTriangles:
         triangle = []
         for quantizedVertex in quantizedTriangle:
-            longitude = (lerp(minX, maxX, old_div(float(quantizedVertex[0]), MAX)))
-            latitude = (lerp(minY, maxY, old_div(float(quantizedVertex[1]), MAX)))
-            height = (lerp(minH, maxH, old_div(float(quantizedVertex[2]), MAX)))
+            longitude = (lerp(minX, maxX, old_div(float(quantizedVertex[0]), TerrainTile.MAX)))
+            latitude = (lerp(minY, maxY, old_div(float(quantizedVertex[1]), TerrainTile.MAX)))
+            height = (lerp(minH, maxH, old_div(float(quantizedVertex[2]), TerrainTile.MAX)))
             triangle.append([longitude, latitude, height])
         triangles.append(triangle)
 
