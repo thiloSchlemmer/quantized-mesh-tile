@@ -198,8 +198,8 @@ class TerrainTile(object):
         self._lats = []
         self._heights = []
         self._triangles = []
-        self._bLong = None
-        self._bLat = None
+        self._workingUnitLongitude = None
+        self._workingUnitLatitude = None
         self._deltaHeight = None
         self.EPSG = 4326
 
@@ -535,53 +535,40 @@ class TerrainTile(object):
             with gzip.open(filePath, 'wb') as f:
                 self._writeTo(f)
 
-    def _getBLat(self):
-        if not self._bLat:
-            self._bLat = old_div(self.MAX, (self._north - self._south))
-        return self._bLat
+    def _getWorkingUnitLatitude(self):
+        if not self._workingUnitLatitude:
+            self._workingUnitLatitude = old_div(self.MAX, (self._north - self._south))
+        return self._workingUnitLatitude
 
-    def _getBLong(self):
-        if not self._bLong:
-            self._bLong = old_div(self.MAX, (self._east - self._west))
-        return self._bLong
+    def _getWorkingUnitLongitude(self):
+        if not self._workingUnitLongitude:
+            self._workingUnitLongitude = old_div(self.MAX, (self._east - self._west))
+        return self._workingUnitLongitude
+
+    def _getDeltaHeight(self):
+        if not self._deltaHeight:
+            max = self.header['maximumHeight']
+            min = self.header['minimumHeight']
+            self._deltaHeight = max - min
+        return self._deltaHeight
 
     def _quantizeLatitude(self, latitude):
-        """
-        Private helper method to convert latitude values to quantized tile (v) values
-        :param latitude: the wgs 84 latitude in degrees
-        :return: the quantized value (v)
-        """
-        v = int(round((latitude - self._south) * self._getBLat()))
+        v = int(round((latitude - self._south) * self._getWorkingUnitLatitude()))
         return v
 
     def _quantizeLongitude(self, longitude):
-        """
-        Private helper method to convert longitude values to quantized tile (u) values
-        :param longitude: the wgs 84 longitude in degrees
-        :return: the quantized value (u)
-        """
-        u = int(round((longitude - self._west) * self._getBLong()))
+        u = int(round((longitude - self._west) * self._getWorkingUnitLongitude()))
         return u
 
     def _quantizeHeight(self, height):
-        """
-        Private helper method to convert height values to quantized tile (h) values
-        :param height: the wgs 84 height in ground units (meter)
-        :return: the quantized value (h)
-        """
         deniv = self._getDeltaHeight()
         # In case a tile is completely flat
         if deniv == 0:
             h = 0
         else:
-            b_height = old_div(self.MAX, deniv)
-            h = int(round((height - self.header['minimumHeight']) * b_height))
+            workingUnitHeight = old_div(self.MAX, deniv)
+            h = int(round((height - self.header['minimumHeight']) * workingUnitHeight))
         return h
-
-    def _getDeltaHeight(self):
-        if not self._deltaHeight:
-            self._deltaHeight = self.header['maximumHeight'] - self.header['minimumHeight']
-        return self._deltaHeight
 
     def _dequantizeHeight(self, h):
         """
@@ -798,8 +785,8 @@ class TerrainTile(object):
                 self.header[k] = occlusionPCoords[2]
 
         # High watermark encoding performed during toFile
-        self.u = list(map(self._quantizeLongitude, topology.uVertex))  # _quantizeLongitude
-        self.v = list(map(self._quantizeLatitude, topology.vVertex))  # _quantizeLatitude
+        self.u = list(map(self._quantizeLongitude, topology.uVertex))
+        self.v = list(map(self._quantizeLatitude, topology.vVertex))
         self.h = list(map(self._quantizeHeight, topology.hVertex))
         self.indices = topology.indexData
 

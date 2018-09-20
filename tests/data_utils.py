@@ -46,9 +46,12 @@ def buildTerrainTile(quantizedTriangles, x, y, z, minH=0, maxH=500,
     for quantizedTriangle in quantizedTriangles:
         triangle = []
         for quantizedVertex in quantizedTriangle:
-            longitude = (lerp(minX, maxX, old_div(float(quantizedVertex[0]), TerrainTile.MAX)))
-            latitude = (lerp(minY, maxY, old_div(float(quantizedVertex[1]), TerrainTile.MAX)))
-            height = (lerp(minH, maxH, old_div(float(quantizedVertex[2]), TerrainTile.MAX)))
+            longitude = (lerp(minX, maxX, old_div(float(quantizedVertex[0]),
+                                                  TerrainTile.MAX)))
+            latitude = (lerp(minY, maxY, old_div(float(quantizedVertex[1]),
+                                                 TerrainTile.MAX)))
+            height = (lerp(minH, maxH, old_div(float(quantizedVertex[2]),
+                                               TerrainTile.MAX)))
             triangle.append([longitude, latitude, height])
         triangles.append(triangle)
 
