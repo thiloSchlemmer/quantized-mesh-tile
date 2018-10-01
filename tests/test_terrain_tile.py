@@ -277,6 +277,25 @@ class TestTerrainTile(unittest.TestCase):
         fileLike = tile.toBytesIO(gzipped=True)
         self.assertIsInstance(fileLike, io.BytesIO)
 
+    def testBoundingBoxProperty(self):
+        # arrange
+        expectedBoundingBox = {'west': 0.0,
+                               'east': 1.0,
+                               'north': 1.0,
+                               'south': 0.0}
+        wkts = [
+            'POLYGON Z ((0.0 0.0 1.0, 0.0 1.0 1.0, 1.0 1.0 1.0, 0.0 0.0 1.0))',
+            'POLYGON Z ((0.0 0.0 1.0, 1.0 0.0 1.0, 1.0 1.0 1.0, 0.0 0.0 1.0))'
+        ]
+        topology = TerrainTopology(geometries=wkts)
+
+        # act
+        tile = TerrainTile(topology=topology)
+        actualBoundingBox = tile.boundingBox
+
+        # assert
+        self.assertDictEqual(expectedBoundingBox, actualBoundingBox)
+
     def testFromBytesIO(self):
         z = 10
         x = 1563

@@ -260,6 +260,18 @@ class TerrainTile(object):
         else:
             return baseContent
 
+    @property
+    def boundingBox(self):
+        """
+        Returns the bounding box of the tile in WGS84 degree
+        :return: Dictionary of floats for boundingbox of the tile with
+                keys ['west','east','north', 'south']
+        """
+        return {'west': self._west,
+                'east': self._east,
+                'north': self._north,
+                'south': self._south}
+
     def getVerticesCoordinates(self):
         """
         A method to retrieve the coordinates of the vertices in lon,lat,height.
