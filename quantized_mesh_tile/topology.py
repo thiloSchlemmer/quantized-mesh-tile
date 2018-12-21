@@ -5,13 +5,16 @@ Reference
 """
 from __future__ import division
 
-
+import shapely
 from builtins import object
 from past.utils import old_div
 import math
 import numpy as np
+from shapely.geometry import box, MultiPoint
+from shapely.ops import split
+
 from .llh_ecef import LLH2ECEF
-from .utils import computeNormals, collapseIntoTriangles
+from .utils import computeNormals, collapseIntoTriangles, computeNormalsMWA
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 from shapely.wkb import loads as load_wkb
@@ -70,7 +73,7 @@ class TerrainTopology(object):
 
     """
 
-    def __init__(self, geometries=[], autocorrectGeometries=False, hasLighting=False):
+    def __init__(self, geometries=[], effectiveBounds=[], autocorrectGeometries=False, hasLighting=False):
 
         self.geometries = geometries
         self.autocorrectGeometries = autocorrectGeometries
@@ -80,6 +83,12 @@ class TerrainTopology(object):
         self.cartesianVertices = []
         self.faces = []
         self.verticesLookup = {}
+        self.effectiveFaces = []
+
+        if len(effectiveBounds) == 4:
+            self.effectiveBounds = box(effectiveBounds[0], effectiveBounds[1], effectiveBounds[2], effectiveBounds[3])
+        else:
+            self.effectiveBounds = None
 
         if len(self.geometries) > 0:
             self.addGeometries(self.geometries)
@@ -133,15 +142,28 @@ class TerrainTopology(object):
                 else:
                     vertices = geometry
 
-                if self.autocorrectGeometries:
+                if self.effectiveBounds:
+                    multipoint2d = MultiPoint([v[:2] for v in vertices])
+                    multipoint3d = MultiPoint(vertices)
+                    if not self.effectiveBounds.boundary.disjoint(multipoint2d.convex_hull):
+                        polygon = multipoint3d.convex_hull
+                        parts = split(polygon, self.effectiveBounds.boundary)
+                        vertices = []
+                        for p in parts:
+                            vertices += (self._extractVertices(p))
+
+                if self.autocorrectGeometries or self.effectiveBounds:
                     if len(vertices) > 3:
-                        triangles = collapseIntoTriangles(vertices)
+                        # triangles = collapseIntoTriangles(vertices)
+                        # for triangle in triangles:
+                            #self._addVertices(triangle)
+                        triangles = shapely.ops.triangulate(MultiPoint(vertices))
                         for triangle in triangles:
-                            self._addVertices(triangle)
+                            self._addVertices([list(c) for c in triangle.exterior.coords])
                     else:
-                        self._addVertices(vertices)
+                        self._addVertices(list(vertices))
                 else:
-                    self._addVertices(vertices)
+                    self._addVertices(list(vertices))
             self._create()
 
     def _extractVertices(self, geometry):
@@ -156,7 +178,7 @@ class TerrainTopology(object):
         if not isinstance(geometry, Polygon):
             raise ValueError('Only polygons are accepted.')
         vertices = list(geometry.exterior.coords)
-        if len(vertices) != 4 and not self.autocorrectGeometries:
+        if len(vertices) != 4 and not (self.autocorrectGeometries or self.effectiveBounds):
             raise ValueError('None triangular shape has beeen found.')
         return vertices[:len(vertices) - 1]
 
@@ -207,8 +229,13 @@ class TerrainTopology(object):
                 faceIndex = len(self.vertices) - 1
                 self.verticesLookup[lookupKey] = faceIndex
                 face.append(faceIndex)
-        # if len(face) == 3:
-        self.faces.append(face)
+            #if len(face) == 3:
+        self.faces.append(list(set(face)))
+        if self.effectiveBounds:
+            triangle = Polygon(vertices)
+            if triangle.within(self.effectiveBounds):
+                self.effectiveFaces.append(len(self.faces) - 1)
+
 
     def _create(self):
         """
@@ -218,7 +245,7 @@ class TerrainTopology(object):
         self.cartesianVertices = np.array(self.cartesianVertices, dtype='float')
         self.faces = np.array(self.faces, dtype='int')
         if self.hasLighting:
-            self.verticesUnitVectors = computeNormals(
+            self.verticesUnitVectors = computeNormalsMWA(
                 self.cartesianVertices, self.faces)
         self.verticesLookup = {}
 
@@ -242,8 +269,9 @@ class TerrainTopology(object):
 
         def algo(coord):
             return (math.atan2(coord[0] - mlat, coord[1] - mlon) + 2 * math.pi) % (
-                2 * math.pi
+                    2 * math.pi
             )
+
         vertices = sorted(vertices, key=algo, reverse=True)
         return vertices
 

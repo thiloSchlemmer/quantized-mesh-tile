@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-
+import json
+import shapely
 import unittest
+from shapely.geometry import box
+
 from quantized_mesh_tile.topology import TerrainTopology
 
 # Must be defined counter clock wise order
 vertices_1 = [
-    [2.1,  3.1,  3.3],
-    [1.2,  1.5,  4.2],
-    [3.2,  2.2,  4.5]
+    [2.1, 3.1, 3.3],
+    [1.2, 1.5, 4.2],
+    [3.2, 2.2, 4.5]
 ]
 
 wkt_1 = 'POLYGON Z ((2.1 3.1 3.3, 1.2 1.5 4.2, 3.2 2.2 4.5, 2.1 3.1 3.3))'
@@ -19,9 +22,9 @@ wkb_1 = b'\x01\x03\x00\x00\x80\x01\x00\x00\x00\x04\x00\x00\x00\xcd\xcc\xcc\xcc' 
         b'\xcc\xcc\xcc\xcc\xcc\x00@\xcd\xcc\xcc\xcc\xcc\xcc\x08@ffffff\n@'
 
 vertices_2 = [
-    [1.2,  1.5,  4.2],
-    [2.2,  1.1,  1.1],
-    [2.1,  2.2,  3.3]
+    [1.2, 1.5, 4.2],
+    [2.2, 1.1, 1.1],
+    [2.1, 2.2, 3.3]
 ]
 
 wkt_2 = 'POLYGON Z ((1.2 1.5 4.2, 2.2 1.1 1.1, 2.1 2.2 3.3, 1.2 1.5 4.2))'
@@ -136,7 +139,7 @@ class TestTopology(unittest.TestCase):
 
     def testTopologyWithAutocorrect(self):
         topology = TerrainTopology(geometries=[vertices_1, vertices_2],
-            autocorrectGeometries=True)
+                                   autocorrectGeometries=True)
         self.assertEqual(len(topology.faces), 2)
 
         vertices_3 = [
@@ -146,13 +149,13 @@ class TestTopology(unittest.TestCase):
             [2.1, 4.7, 2.9]
         ]
         topology = TerrainTopology(geometries=[vertices_1, vertices_3],
-            autocorrectGeometries=True)
+                                   autocorrectGeometries=True)
         self.assertEqual(len(topology.faces), 3)
 
         wkt = 'POLYGON Z ((2.4 3.1 3.3, 1.2 1.9 4.2, 3.2 2.3 4.5, 2.5 1.6 1.1,' \
               ' 2.4 3.1 3.3))'
         topology = TerrainTopology(geometries=[vertices_1, wkt],
-            autocorrectGeometries=True)
+                                   autocorrectGeometries=True)
         self.assertEqual(len(topology.faces), 3)
 
         topology = TerrainTopology(geometries=[wkt], autocorrectGeometries=True)
@@ -167,6 +170,40 @@ class TestTopology(unittest.TestCase):
               ' 4.2 2.1 4.8, 6.2 3.2 1.1, 2.1 3.1 3.3))'
         topology = TerrainTopology(geometries=[wkt], autocorrectGeometries=True)
         self.assertEqual(len(topology.faces), 4)
+
+    def testTopologyWithEffectiveBounds(self):
+        geometries = []
+        with open("/export/data2/Tests_DGM_MERGE/TMS-Samples/14_17381_12506_dgm1.wkt", mode='r') as wkt_file:
+            for line in wkt_file:
+                geometries.append(line)
+
+        bbox = box(10.9533691406, 47.395062446618994, 10.96431255332, 47.406005859339)
+        effectiveBounds = shapely.affinity.scale(bbox, 0.7, 0.7, 0.7).bounds
+        topology = TerrainTopology(geometries=geometries,
+                                   effectiveBounds=effectiveBounds)
+
+        with open("/tmp/Faces.wkt", mode='w') as faces_file:
+            for face in topology.faces:
+                vertices = []
+                for v in face:
+                    vertex = topology.vertices[v]
+                    vertices.append(" ".join(map(str, vertex)))
+
+                faceString = ",".join(vertices) + "," + vertices[0]
+                faces_file.write("POLYGON Z (({}))\n".format(faceString))
+
+        with open("/tmp/EffectiveFaces.wkt", mode='w') as effectiveFaces_file:
+            for e in topology.effectiveFaces:
+                effectiveFace = topology.faces[e]
+                vertices = []
+                for v in effectiveFace:
+                    vertex = topology.vertices[v]
+                    vertices.append(" ".join(map(str, vertex)))
+
+                faceString = ",".join(vertices) + "," + vertices[0]
+                effectiveFaces_file.write("POLYGON Z (({}))\n".format(faceString))
+
+        self.assertEqual(len(topology.faces), 3)
 
     def testTopologyBadGeoms(self):
         wkt = 'POLYGON Z ((2.1 3.1 3.3, 1.2 1.5 4.2, 3.2 2.2 4.5, 2.5 1.2 1.1,' \

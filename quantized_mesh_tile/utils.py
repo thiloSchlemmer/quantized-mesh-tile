@@ -135,6 +135,15 @@ def triangleArea(a, b):
     return 0.5 * math.sqrt(i + j + k)
 
 
+def calculateAngle(a, b, c):
+    ba = c3d.subtract(a, b)
+    bc = c3d.subtract(c, b)
+
+    cos = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    angle = np.arccos(cos)
+    return angle
+
+
 # Inspired by
 # https://github.com/AnalyticalGraphicsInc/cesium/wiki/Geometry-and-Appearances
 # https://github.com/AnalyticalGraphicsInc/cesium/blob/master/
@@ -144,6 +153,7 @@ def computeNormals(vertices, faces):
     numFaces = len(faces)
     normalsPerFace = [None] * numFaces
     areasPerFace = [0.0] * numFaces
+
     normalsPerVertex = np.zeros(vertices.shape, dtype=vertices.dtype)
 
     for i in xrange(0, numFaces):
@@ -168,6 +178,45 @@ def computeNormals(vertices, faces):
         normalsPerVertex[i] = c3d.normalize(normalsPerVertex[i])
 
     return normalsPerVertex
+
+
+def computeNormalsMWA(vertices, faces):
+    numVertices = len(vertices)
+    numFaces = len(faces)
+    normalsPerFace = [None] * numFaces
+    anglesPerFaceAndVertex = {}
+
+    normalsPerVertex = np.zeros(vertices.shape, dtype=vertices.dtype)
+
+    for i in xrange(0, numFaces):
+        face = faces[i]
+        v0 = vertices[face[0]]
+        v1 = vertices[face[1]]
+        v2 = vertices[face[2]]
+
+        normal = np.cross(c3d.subtract(v1, v0), c3d.subtract(v2, v0))
+
+        a0 = calculateAngle(v0, v1, v2)
+        a1 = calculateAngle(v1, v2, v0)
+        a2 = calculateAngle(v2, v0, v1)
+
+        anglesPerFaceAndVertex["{}_{}".format(i, face[0])] = a0
+        anglesPerFaceAndVertex["{}_{}".format(i, face[1])] = a1
+        anglesPerFaceAndVertex["{}_{}".format(i, face[2])] = a2
+        normalsPerFace[i] = normal
+
+    for i in xrange(0, numFaces):
+        face = faces[i]
+        for j in face:
+            angle = anglesPerFaceAndVertex["{}_{}".format(i, j)]
+            b = [p * angle for p in normalsPerFace[i]]
+            normalsPerVertex[j] = c3d.add(normalsPerVertex[j], b)
+
+    for i in xrange(0, numVertices):
+        normalsPerVertex[i] = c3d.normalize(normalsPerVertex[i])
+
+    return normalsPerVertex
+
 
 
 def gzipFileObject(data):
