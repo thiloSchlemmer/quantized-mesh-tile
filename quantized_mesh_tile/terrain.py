@@ -550,12 +550,10 @@ class TerrainTile(object):
         return self._deltaHeight
 
     def _quantizeLatitude(self, latitude):
-        return int(round((latitude - self._south) *
-                         self._getWorkingUnitLatitude()))
+        return int(round((latitude - self._south) * self._getWorkingUnitLatitude()))
 
     def _quantizeLongitude(self, longitude):
-        return int(round((longitude - self._west) *
-                         self._getWorkingUnitLongitude()))
+        return int(round((longitude - self._west) * self._getWorkingUnitLongitude()))
 
     def _quantizeHeight(self, height):
         deniv = self._getDeltaHeight()

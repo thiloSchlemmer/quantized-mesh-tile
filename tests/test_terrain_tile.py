@@ -176,6 +176,7 @@ class TestTerrainTile(unittest.TestCase):
 
         def sign(a):
             return 1 if a > 0 else -1 if a < 0 else 0
+
         for i in range(0, len(ter.vLight)):
             for j in range(0, 3):
                 # We cannot have an exact equality with successive
@@ -185,7 +186,7 @@ class TestTerrainTile(unittest.TestCase):
                     sign(ter.vLight[i][j]), sign(ter2.vLight[i][j]))
 
         self.assertEqual(ter2.getContentType(),
-                         'application/vnd.quantized-mesh;' +
+                         'application/vnd.quantized-mesh;'
                          'extensions=octvertexnormals-watermask')
 
     def testExtentionsReaderWriterGzipped(self):
